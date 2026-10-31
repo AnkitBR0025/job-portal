@@ -14,6 +14,9 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const isRecruiter = user?.role === 'recruiter';
 
   useEffect(() => {
@@ -22,6 +25,53 @@ export default function ProfilePage() {
 
   function change(event) {
     setForm(current => ({ ...current, [event.target.name]: event.target.value }));
+  }
+
+  function handleAvatarChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setError('Please select a JPG, PNG or WEBP image.');
+      event.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image size must be 5 MB or less.');
+      event.target.value = '';
+      return;
+    }
+    setError('');
+    setSelectedAvatar(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  }
+
+  async function uploadAvatar() {
+    if (!selectedAvatar) return;
+    setAvatarUploading(true); setError(''); setMessage('');
+    try {
+      const formData = new FormData();
+      formData.append('avatar', selectedAvatar);
+      const { data } = await client.post('/auth/profile/avatar', formData);
+      setUser(data.user);
+      setSelectedAvatar(null);
+      setAvatarPreview('');
+      setMessage('Profile picture updated successfully.');
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Could not upload profile picture.');
+    } finally { setAvatarUploading(false); }
+  }
+
+  async function removeAvatar() {
+    setError(''); setMessage('');
+    try {
+      const { data } = await client.delete('/auth/profile/avatar');
+      setUser(data.user);
+      setSelectedAvatar(null);
+      setAvatarPreview('');
+      setMessage('Profile picture removed successfully.');
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Could not remove profile picture.');
+    }
   }
 
   async function save(event) {
@@ -47,7 +97,17 @@ export default function ProfilePage() {
     <div className="profile-topline"><div><p className="eyebrow">Account settings</p><h1>Your profile</h1><p className="lead">Make a strong first impression and keep your details up to date.</p></div><Link className="button secondary" to="/dashboard">← Back to dashboard</Link></div>
     <div className="profile-layout">
       <aside className="profile-summary">
-        <div className="profile-avatar">{initials}</div>
+        <div className="profile-avatar">
+          {avatarPreview || user?.avatar?.url ? <img src={avatarPreview || user.avatar.url} alt="Profile" /> : initials}
+        </div>
+        <div className="avatar-controls">
+          <label className="avatar-upload-label">Change profile picture
+            <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleAvatarChange} />
+          </label>
+          {selectedAvatar && <button type="button" className="button avatar-action" onClick={uploadAvatar} disabled={avatarUploading}>{avatarUploading ? 'Uploading…' : 'Upload picture'}</button>}
+          {(user?.avatar?.url || selectedAvatar) && <button type="button" className="avatar-remove-button" onClick={removeAvatar}>Remove picture</button>}
+          <span className="field-hint">JPG, PNG or WEBP · Max 5 MB</span>
+        </div>
         <h2>{form.name || user?.name}</h2>
         <p className="profile-email">{user?.email}</p>
         <span className="pill role-pill">{isRecruiter ? 'Recruiter' : user?.role === 'admin' ? 'Administrator' : 'Applicant'}</span>

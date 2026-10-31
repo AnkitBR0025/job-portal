@@ -1,6 +1,8 @@
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import { cookieOptions, createToken } from "../utils/token.js";
+import cloudinary from "../config/cloudinary.js";
+import uploadToCloudinary from "../utils/uploadToCloudinary.js";
 const safeUser = (user) => ({
   id: user._id,
   name: user.name,
@@ -75,5 +77,36 @@ export async function updateProfile(req, res, next) {
     }
     const user = await User.findByIdAndUpdate(req.user._id, { $set: updates }, { new: true, runValidators: true });
     res.json({ user: safeUser(user) });
+  } catch (error) { next(error); }
+}
+
+
+// Upload or replace the authenticated user's profile picture.
+export async function uploadAvatar(req, res, next) {
+  try {
+    if (!req.file) return res.status(400).json({ message: "Please select a profile picture" });
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      return res.status(503).json({ message: "Cloudinary is not configured. Check backend .env" });
+    }
+    const result = await uploadToCloudinary(req.file.buffer, "careernest/profile-pictures", "image");
+    const previousPublicId = req.user.avatar?.publicId;
+    req.user.avatar = { url: result.secure_url, publicId: result.public_id };
+    await req.user.save();
+    if (previousPublicId) {
+      try { await cloudinary.uploader.destroy(previousPublicId, { resource_type: "image" }); }
+      catch (deleteError) { console.error("Could not delete previous profile picture:", deleteError.message); }
+    }
+    res.status(200).json({ message: "Profile picture uploaded successfully", user: safeUser(req.user) });
+  } catch (error) { next(error); }
+}
+
+// Remove the authenticated user's profile picture.
+export async function removeAvatar(req, res, next) {
+  try {
+    const publicId = req.user.avatar?.publicId;
+    if (publicId) await cloudinary.uploader.destroy(publicId, { resource_type: "image" });
+    req.user.avatar = { url: "", publicId: "" };
+    await req.user.save();
+    res.status(200).json({ message: "Profile picture removed successfully", user: safeUser(req.user) });
   } catch (error) { next(error); }
 }
