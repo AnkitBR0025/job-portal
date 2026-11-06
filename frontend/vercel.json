@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://job-portal-1-nbnz.onrender.com/api/:path*"
+    }
+  ]
+}

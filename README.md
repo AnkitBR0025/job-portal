@@ -42,8 +42,9 @@ A full-stack MERN-style job portal with applicant and recruiter accounts.
 ## Environment configuration
 
 - `backend/.env`: MongoDB connection, JWT secret, client origin, and Cloudinary credentials.
-- `frontend/.env`: `VITE_API_URL=http://localhost:5000/api` by default.
+- `frontend/.env`: `VITE_API_URL=http://localhost:5000/api` by default for local development. The Vercel deployment proxies `/api` to the Render backend through [frontend/vercel.json](./frontend/vercel.json), so production requests and auth cookies use the frontend's origin.
 - Do not commit `.env` files or share API keys. Only the `.env.example` templates are included in this ZIP.
+- For production, deploy the frontend from the `frontend` directory so Vercel applies its API rewrite. Set the backend `CLIENT_URL` to the exact frontend origin. The same-origin proxy avoids relying on browsers to allow cross-site authentication cookies.
 
 ## Main API routes
 
