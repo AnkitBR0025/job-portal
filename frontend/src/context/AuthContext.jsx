@@ -13,11 +13,11 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
   const login = async (credentials) => {
-    const { data } = await client.post("/api/auth/login", credentials);
+    const { data } = await client.post("/auth/login", credentials);
     setUser(data.user);
   };
   const logout = async () => {
-    await client.post("/api/auth/logout");
+    await client.post("/auth/logout");
     setUser(null);
   };
   return (
