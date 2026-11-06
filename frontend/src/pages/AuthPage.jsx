@@ -19,7 +19,7 @@ export default function AuthPage({ mode }) {
       if (isLogin) {
         await login(form);
       } else {
-        await client.post('/api/auth/register', form);
+        await client.post('/auth/register', form);
         await login(form);
       }
       navigate(location.state?.from || '/dashboard', { replace: true });
