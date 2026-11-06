@@ -1,3 +1,4 @@
+
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -17,13 +18,15 @@ import {
 dotenv.config();
 
 const app = express();
-
 const port = process.env.PORT || 5000;
+
+// Remove trailing slash from frontend URL
+const clientUrl = process.env.CLIENT_URL?.replace(/\/+$/, "");
 
 // Middleware
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: clientUrl,
     credentials: true,
   })
 );
@@ -52,6 +55,7 @@ const startServer = async () => {
 
     app.listen(port, () => {
       console.log(`API listening on ${port}`);
+      console.log(`Allowed frontend: ${clientUrl}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error.message);
